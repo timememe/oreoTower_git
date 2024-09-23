@@ -1,0 +1,102 @@
+/* style.css */
+
+/* Общие стили */
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #0058C9; /* Фон за игровым канвасом */
+}
+
+#game-container {
+    position: relative;
+    margin: auto;
+    overflow: hidden;
+}
+
+#game-container > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#game-canvas {
+    display: none;
+}
+
+/* Стили для popup */
+.popup {
+    display: none;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 88, 201, 0.5); /* Полупрозрачный синий фон */
+    backdrop-filter: blur(10px); /* Размытие фона */
+    color: #fff;
+    z-index: 10;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    border: 2px solid #fff; /* Белая контурная рамка */
+    box-sizing: border-box;
+}
+
+.popup h1, .popup p, .popup button {
+    margin: 10px;
+    background-color: rgba(0, 88, 201, 0.5); /* Полупрозрачный блюр цвета 0058C9 */
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.popup button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.3); /* Полупрозрачный белый фон */
+}
+
+.popup button:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Отображаем стартовый popup */
+#start-popup {
+    display: flex;
+}
+
+/* Прячем end-popup по умолчанию */
+#end-popup {
+    display: none;
+}
+
+/* Стили для счетчика и сообщений точности */
+#score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #fff;
+    font-size: 24px;
+    text-shadow: 1px 1px 2px #000;
+}
+
+#accuracy-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ff0;
+    font-size: 48px;
+    text-shadow: 2px 2px 4px #000;
+    display: none;
+}
+
+/* Подключение шрифта */
+@font-face {
+    font-family: 'PlutoOreo-Black';
+    src: url('https://cdn.jsdelivr.net/gh/timememe/o_files@main/PlutoOreo-Black.otf') format('opentype');
+}
+
+body, html, button, h1, p, #score, #accuracy-message {
+    font-family: 'PlutoOreo-Black', sans-serif;
+}
