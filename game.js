@@ -2,12 +2,12 @@
 let language = 'ru'; // Язык игры
 
 // Контрольные переменные
-let baseBlockWidth = 150; // Длина статичного базового блока
+let baseBlockWidth = 200; // Длина статичного базового блока
 let baseBlockHeight = 20; // Высота статичного базового блока
-let baseBlockY = 700; // Вертикальная позиция статичного базового блока
+let baseBlockY = 900; // Вертикальная позиция статичного базового блока
 
-let blockWidth = 60; // Длина всех падающих блоков
-let blockHeight = 20; // Высота всех падающих блоков
+let blockWidth = 120; // Длина всех падающих блоков
+let blockHeight = 40; // Высота всех падающих блоков
 let horizontalMovementY = 420; // Высота движения блоков по горизонтали и откуда они падают
 
 let initialHorizontalSpeed = 3; // Начальная скорость движения по горизонтали
@@ -15,7 +15,7 @@ let horizontalSpeed; // Текущая скорость движения по г
 let accelerationMultiplier = 1; // Множитель ускорения после каждого блока
 
 let texUpscale = 1;
-let texUpscale_drop = 0.1;
+let texUpscale_drop = 0.2;
 const maxBlocks = 10; // Количество блоков для победы
 const blockTextureURL = 'assets/cookie.png'; // URL текстуры блока
 
