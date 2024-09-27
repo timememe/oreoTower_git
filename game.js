@@ -1,27 +1,35 @@
 // Глобальные настройки игры
 let language = 'ru'; // Язык игры
 
-// Контрольные переменные
-let baseBlockWidth = 200; // Длина статичного базового блока
-let baseBlockHeight = 20; // Высота статичного базового блока
-let baseBlockY = 900; // Вертикальная позиция статичного базового блока
+// Относительные размеры и позиции
+let baseBlockWidthPercent = 0.3; // 30% от ширины экрана
+let baseBlockHeightPercent = 0.06; // 2% от высоты экрана
+let baseBlockYPercent = 0.95; // 95% от высоты экрана
 
-let blockWidth = 120; // Длина всех падающих блоков
-let blockHeight = 40; // Высота всех падающих блоков
-let horizontalMovementY = 420; // Высота движения блоков по горизонтали и откуда они падают
+let blockWidthPercent = 0.18; // 18% от ширины экрана
+let blockHeightPercent = 0.04; // 4% от высоты экрана
+let horizontalMovementYPercent = 0.4; // 40% от высоты экрана
 
-let initialHorizontalSpeed = 3; // Начальная скорость движения по горизонтали
+// Абсолютные размеры (будут вычисляться)
+let baseBlockWidth, baseBlockHeight, baseBlockY;
+let blockWidth, blockHeight, horizontalMovementY;
+
+let initialHorizontalSpeed = 0.005; // Начальная скорость в процентах от ширины экрана
 let horizontalSpeed; // Текущая скорость движения по горизонтали
-let accelerationMultiplier = 1; // Множитель ускорения после каждого блока
+let accelerationMultiplier = 1.1; // Множитель ускорения после каждого блока
 
 let texUpscale = 1;
 let texUpscale_drop = 0.2;
+let texUpscale_plate = 0.2;
 const maxBlocks = 10; // Количество блоков для победы
-const blockTextureURL = 'assets/cookie.png'; // URL текстуры блока
+const blockTextureURL = 'assets/cookie.png';
+const plateTextureURL = 'assets/plate.png';
 
-// Предзагрузка изображения текстуры блока
+// Предзагрузка изображений текстур
 let blockTextureImage = new Image();
 blockTextureImage.src = blockTextureURL;
+let plateTextureImage = new Image();
+plateTextureImage.src = plateTextureURL;
 
 // Игровые переменные
 let canvas, ctx;
@@ -174,8 +182,11 @@ function initGame() {
     successfulBlocks = 0;
     blocks = [];
 
+    // Пересчитываем размеры и позиции
+    calculateSizes();
+
     // Сброс горизонтальной скорости
-    horizontalSpeed = initialHorizontalSpeed; // Сброс к начальному значению
+    horizontalSpeed = initialHorizontalSpeed * canvas.width;
 
     // Создаем физический движок Matter.js
     engine = Matter.Engine.create();
@@ -189,8 +200,8 @@ function initGame() {
             width: canvas.width,
             height: canvas.height,
             wireframes: false,
-            background: '#87ceeb', // Небесно-голубой
-            hasBounds: true // Включаем границы
+            background: '#87ceeb',
+            hasBounds: true
         }
     });
 
@@ -200,7 +211,7 @@ function initGame() {
     });
     Matter.World.add(world, ground);
 
-    // Добавляем первый блок-основание
+    // Добавляем первый блок-основание с текстурой
     let baseBlock = Matter.Bodies.rectangle(
         canvas.width / 2,
         baseBlockY,
@@ -209,11 +220,15 @@ function initGame() {
         {
             isStatic: true,
             render: {
-                fillStyle: '#8B4513'
+                sprite: {
+                    texture: plateTextureURL,
+                    xScale: baseBlockWidth / plateTextureImage.width,
+                    yScale: baseBlockHeight / plateTextureImage.height
+                }
             }
         }
     );
-    baseBlock.blockIndex = -1; // Базовый блок внизу
+    baseBlock.blockIndex = -1;
     Matter.World.add(world, baseBlock);
     blocks.push(baseBlock);
 
@@ -262,6 +277,16 @@ function initGame() {
     Matter.Events.on(engine, 'collisionEnd', handleCollisionEnd);
 }
 
+function calculateSizes() {
+    baseBlockWidth = canvas.width * baseBlockWidthPercent;
+    baseBlockHeight = canvas.height * baseBlockHeightPercent;
+    baseBlockY = canvas.height * baseBlockYPercent;
+
+    blockWidth = canvas.width * blockWidthPercent;
+    blockHeight = canvas.height * blockHeightPercent;
+    horizontalMovementY = canvas.height * horizontalMovementYPercent;
+}
+
 // Создание нового блока
 function createNewBlock() {
     currentBlock = {
@@ -292,7 +317,6 @@ function renderCurrentBlock() {
         const context = render.context;
         context.save();
 
-        // Поскольку текстура больше хитбокса, корректируем позицию
         let textureX = currentBlock.x - (currentBlock.width * texUpscale - currentBlock.width) / 2;
         let textureY = currentBlock.y - (currentBlock.height * texUpscale - currentBlock.height) / 2;
         let textureWidth = currentBlock.width * texUpscale;
@@ -301,8 +325,7 @@ function renderCurrentBlock() {
         if (blockTextureImage.complete) {
             context.drawImage(blockTextureImage, textureX, textureY, textureWidth, textureHeight);
         } else {
-            // Если изображение еще не загружено, заполняем прямоугольник
-            context.fillStyle = '#8B4513'; // Коричневый цвет
+            context.fillStyle = '#8B4513';
             context.fillRect(currentBlock.x, currentBlock.y, currentBlock.width, currentBlock.height);
         }
         context.restore();
@@ -315,7 +338,6 @@ function dropBlock() {
 
     currentBlock.isFalling = true;
 
-    // Создаем физическое тело для текущего блока
     let blockBody = Matter.Bodies.rectangle(
         currentBlock.x + currentBlock.width / 2,
         currentBlock.y + currentBlock.height / 2,
@@ -325,34 +347,29 @@ function dropBlock() {
             render: {
                 sprite: {
                     texture: blockTextureURL,
-                    xScale: texUpscale_drop,
-                    yScale: texUpscale_drop
+                    xScale: currentBlock.width / blockTextureImage.width,
+                    yScale: currentBlock.height / blockTextureImage.height
                 }
             }
         }
     );
 
-    // Устанавливаем пользовательские свойства
     blockBody.blockIndex = blockCount;
     blockBody.isFalling = true;
     blockBody.hasLanded = false;
     blockBody.touchedGround = false;
 
-    // Добавляем тело в физический мир
     Matter.World.add(world, blockBody);
     blocks.push(blockBody);
 
-    // Обновляем lastBlock и secondLastBlock
     secondLastBlock = lastBlock;
     lastBlock = blockBody;
 
     currentBlock = null;
     blockCount++;
 
-    // Увеличиваем горизонтальную скорость с учетом множителя ускорения
     horizontalSpeed *= accelerationMultiplier;
 
-    // Если не достигли максимального количества блоков, создаем новый
     if (blockCount < maxBlocks) {
         createNewBlock();
     }
@@ -515,23 +532,24 @@ function restartGame() {
 function resizeCanvas() {
     if (!canvas) return;
 
-    const desiredAspectRatio = 9 / 16; // Соотношение сторон ширина/высота
+    const desiredAspectRatio = 9 / 16;
     const windowAspectRatio = window.innerWidth / window.innerHeight;
 
     const container = document.getElementById('game-container');
 
     if (windowAspectRatio > desiredAspectRatio) {
-        // Окно шире, чем необходимо – ограничиваем по высоте
         canvas.height = window.innerHeight;
         canvas.width = canvas.height * desiredAspectRatio;
     } else {
-        // Окно уже, чем необходимо – ограничиваем по ширине
         canvas.width = window.innerWidth;
         canvas.height = canvas.width / desiredAspectRatio;
     }
 
     container.style.width = `${canvas.width}px`;
     container.style.height = `${canvas.height}px`;
+
+    // Пересчитываем размеры и позиции
+    calculateSizes();
 
     // Обновляем параметры рендерера
     if (render) {
@@ -543,5 +561,32 @@ function resizeCanvas() {
         // Обновляем границы камеры
         render.bounds.max.x = canvas.width;
         render.bounds.max.y = canvas.height;
+
+        // Обновляем положение и размеры всех блоков
+        updateBlocksSize();
+    }
+
+    // Обновляем горизонтальную скорость
+    horizontalSpeed = initialHorizontalSpeed * canvas.width;
+}
+
+function updateBlocksSize() {
+    for (let i = 0; i < blocks.length; i++) {
+        let block = blocks[i];
+        if (block.blockIndex === -1) {
+            // Обновляем базовый блок
+            Matter.Body.setPosition(block, {
+                x: canvas.width / 2,
+                y: baseBlockY
+            });
+            Matter.Body.scale(block, 
+                baseBlockWidth / block.bounds.max.x - block.bounds.min.x,
+                baseBlockHeight / block.bounds.max.y - block.bounds.min.y
+            );
+        } else {
+            // Обновляем остальные блоки
+            let scale = blockWidth / (block.bounds.max.x - block.bounds.min.x);
+            Matter.Body.scale(block, scale, scale);
+        }
     }
 }
