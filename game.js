@@ -3,12 +3,12 @@ let language = 'ru'; // Язык игры
 
 // Относительные размеры и позиции
 let baseBlockWidthPercent = 0.3; // 30% от ширины экрана
-let baseBlockHeightPercent = 0.06; // 2% от высоты экрана
-let baseBlockYPercent = 0.95; // 95% от высоты экрана
+let baseBlockHeightPercent = 0.03; // 2% от высоты экрана
+let baseBlockYPercent = 0.75; // 95% от высоты экрана
 
 let blockWidthPercent = 0.18; // 18% от ширины экрана
-let blockHeightPercent = 0.04; // 4% от высоты экрана
-let horizontalMovementYPercent = 0.4; // 40% от высоты экрана
+let blockHeightPercent = 0.02; // 4% от высоты экрана
+let horizontalMovementYPercent = 0.3; // 40% от высоты экрана
 
 // Абсолютные размеры (будут вычисляться)
 let baseBlockWidth, baseBlockHeight, baseBlockY;
@@ -19,8 +19,12 @@ let horizontalSpeed; // Текущая скорость движения по г
 let accelerationMultiplier = 1.1; // Множитель ускорения после каждого блока
 
 let texUpscale = 1;
-let texUpscale_drop = 0.2;
-let texUpscale_plate = 0.2;
+//let texUpscale_drop = 0.2;
+//let texUpscale_plate = 0.2;
+let baseBlockTextureScale = 0.42; // Масштаб текстуры для базового блока
+let baseBlockTextureOffsetY = 0.15;
+let blockTextureScale = 0.2;
+
 const maxBlocks = 10; // Количество блоков для победы
 const blockTextureURL = 'assets/cookie.png';
 const plateTextureURL = 'assets/plate.png';
@@ -222,8 +226,9 @@ function initGame() {
             render: {
                 sprite: {
                     texture: plateTextureURL,
-                    xScale: baseBlockWidth / plateTextureImage.width,
-                    yScale: baseBlockHeight / plateTextureImage.height
+                    xScale: baseBlockTextureScale,
+                    yScale: baseBlockTextureScale,
+                    yOffset: baseBlockTextureOffsetY
                 }
             }
         }
@@ -317,10 +322,10 @@ function renderCurrentBlock() {
         const context = render.context;
         context.save();
 
-        let textureX = currentBlock.x - (currentBlock.width * texUpscale - currentBlock.width) / 2;
-        let textureY = currentBlock.y - (currentBlock.height * texUpscale - currentBlock.height) / 2;
-        let textureWidth = currentBlock.width * texUpscale;
-        let textureHeight = currentBlock.height * texUpscale;
+        let textureWidth = blockTextureImage.width * blockTextureScale;
+        let textureHeight = blockTextureImage.height * blockTextureScale;
+        let textureX = currentBlock.x + (currentBlock.width - textureWidth) / 2;
+        let textureY = currentBlock.y + (currentBlock.height - textureHeight) / 2;
 
         if (blockTextureImage.complete) {
             context.drawImage(blockTextureImage, textureX, textureY, textureWidth, textureHeight);
@@ -347,8 +352,8 @@ function dropBlock() {
             render: {
                 sprite: {
                     texture: blockTextureURL,
-                    xScale: currentBlock.width / blockTextureImage.width,
-                    yScale: currentBlock.height / blockTextureImage.height
+                    xScale: blockTextureScale,
+                    yScale: blockTextureScale
                 }
             }
         }
@@ -580,13 +585,21 @@ function updateBlocksSize() {
                 y: baseBlockY
             });
             Matter.Body.scale(block, 
-                baseBlockWidth / block.bounds.max.x - block.bounds.min.x,
-                baseBlockHeight / block.bounds.max.y - block.bounds.min.y
+                baseBlockWidth / (block.bounds.max.x - block.bounds.min.x),
+                baseBlockHeight / (block.bounds.max.y - block.bounds.min.y)
             );
+            // Обновляем масштаб и позицию текстуры базового блока
+            block.render.sprite.xScale = baseBlockTextureScale;
+            block.render.sprite.yScale = baseBlockTextureScale;
+            block.render.sprite.yOffset = baseBlockTextureOffsetY * baseBlockHeight;
         } else {
             // Обновляем остальные блоки
-            let scale = blockWidth / (block.bounds.max.x - block.bounds.min.x);
-            Matter.Body.scale(block, scale, scale);
+            let scaleX = blockWidth / (block.bounds.max.x - block.bounds.min.x);
+            let scaleY = blockHeight / (block.bounds.max.y - block.bounds.min.y);
+            Matter.Body.scale(block, scaleX, scaleY);
+            // Обновляем масштаб текстуры падающих блоков
+            block.render.sprite.xScale = blockTextureScale;
+            block.render.sprite.yScale = blockTextureScale;
         }
     }
 }
