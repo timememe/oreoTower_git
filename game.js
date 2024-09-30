@@ -1,14 +1,23 @@
 // Глобальные настройки игры
 let language = 'ru'; // Язык игры
 
+// Глобальные цвета градиента
+let gradientColorStart = 'white';
+let gradientColorEnd = '#0058C9';
+
 // Относительные размеры и позиции
-let baseBlockWidthPercent = 0.3; // 30% от ширины экрана
-let baseBlockHeightPercent = 0.03; // 2% от высоты экрана
-let baseBlockYPercent = 0.75; // 95% от высоты экрана
+let baseBlockWidthPercent = 0.5; // 50% от ширины экрана
+let baseBlockHeightPercent = 0.05; // 5% от высоты экрана
+let baseBlockYPercent = 0.75; // 75% от высоты экрана
 
 let blockWidthPercent = 0.18; // 18% от ширины экрана
-let blockHeightPercent = 0.02; // 4% от высоты экрана
-let horizontalMovementYPercent = 0.3; // 40% от высоты экрана
+let blockHeightPercent = 0.02; // 2% от высоты экрана
+let horizontalMovementYPercent = 0.3; // 30% от высоты экрана
+
+// Глобальные настройки грида
+const GRID_SPACING = 20; // Отступ между объектами грида в пикселях
+const GRID_OBJECT_WIDTH = 120; // Ширина объекта грида в пикселях
+const GRID_OBJECT_HEIGHT = 60; // Высота объекта грида в пикселях
 
 // Абсолютные размеры (будут вычисляться)
 let baseBlockWidth, baseBlockHeight, baseBlockY;
@@ -18,22 +27,24 @@ let initialHorizontalSpeed = 0.005; // Начальная скорость в п
 let horizontalSpeed; // Текущая скорость движения по горизонтали
 let accelerationMultiplier = 1.1; // Множитель ускорения после каждого блока
 
-let texUpscale = 1;
-//let texUpscale_drop = 0.2;
-//let texUpscale_plate = 0.2;
-let baseBlockTextureScale = 0.42; // Масштаб текстуры для базового блока
-let baseBlockTextureOffsetY = 0.15;
-let blockTextureScale = 0.2;
+// Глобальные переменные для масштабирования текстур
+let baseBlockTextureScaleY = 2; // Вертикальный масштаб текстуры базового блока
+let baseBlockTextureOffsetY = 0.2;
+let blockTextureScaleY = 0.2; // Вертикальный масштаб текстуры падающих блоков
+let blockTextureOffsetY = 0.0; // Вертикальный оффсет для текстур блоков
 
 const maxBlocks = 10; // Количество блоков для победы
 const blockTextureURL = 'assets/cookie.png';
 const plateTextureURL = 'assets/plate.png';
+const topBackgroundURL = 'assets/cookie_bg.png'; // Фоновое изображение для верха
 
 // Предзагрузка изображений текстур
 let blockTextureImage = new Image();
 blockTextureImage.src = blockTextureURL;
 let plateTextureImage = new Image();
 plateTextureImage.src = plateTextureURL;
+let topBackgroundImage = new Image();
+topBackgroundImage.src = topBackgroundURL;
 
 // Игровые переменные
 let canvas, ctx;
@@ -47,8 +58,10 @@ let blockCount = 0;
 let lastBlock = null;
 let secondLastBlock = null;
 
-// Добавляем переменную для счетчика успешно размещенных блоков
+// Добавляем переменные для таймера и счетчика
 let successfulBlocks = 0;
+let gameTimer;
+let timeLeft = 120; // 2 минуты в секундах
 
 // Переводы
 const translations = {
@@ -62,7 +75,8 @@ const translations = {
         score: "Blocks: ",
         perfect: "PERFECT!",
         great: "GREAT!",
-        okay: "OKAY"
+        okay: "OKAY",
+        backButtonText: "Back"
     },
     ru: {
         gameTitle: "Строитель Башни",
@@ -74,7 +88,8 @@ const translations = {
         score: "Блоки: ",
         perfect: "ИДЕАЛЬНО!",
         great: "КЛАСС!",
-        okay: "НУ ОК"
+        okay: "НУ ОК",
+        backButtonText: "НАЗАД"
     },
     // Добавьте остальные переводы...
 };
@@ -98,8 +113,24 @@ Matter.Render.bodies = function(render, bodies, context) {
     originalRenderBodies.call(this, render, bodies, context);
 };
 
-// Инициализация игры и событий
+// Ждем загрузки изображений перед запуском игры
 document.addEventListener('DOMContentLoaded', () => {
+    let imagesLoaded = 0;
+    const totalImages = 3; // Общее количество изображений
+
+    blockTextureImage.onload = checkImagesLoaded;
+    plateTextureImage.onload = checkImagesLoaded;
+    topBackgroundImage.onload = checkImagesLoaded;
+
+    function checkImagesLoaded() {
+        imagesLoaded++;
+        if (imagesLoaded === totalImages) {
+            initGameAndEvents();
+        }
+    }
+});
+
+function initGameAndEvents() {
     // Инициализация canvas
     canvas = document.getElementById('game-canvas');
     ctx = canvas.getContext('2d');
@@ -126,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dropBlock();
         }
     });
-});
+}
 
 // Инициализация UI
 function initUI() {
@@ -140,20 +171,11 @@ function initUI() {
     document.getElementById('start-popup').style.display = 'flex';
     document.getElementById('game-canvas').style.display = 'none';
 
-    // Создаем элемент для отображения счетчика
+    // Удаляем верхний счетчик, так как будем использовать score-display
     let scoreElement = document.getElementById('score');
-    if (!scoreElement) {
-        scoreElement = document.createElement('div');
-        scoreElement.id = 'score';
-        scoreElement.style.position = 'absolute';
-        scoreElement.style.top = '10px';
-        scoreElement.style.left = '10px';
-        scoreElement.style.color = '#fff';
-        scoreElement.style.fontSize = '24px';
-        scoreElement.style.textShadow = '1px 1px 2px #000';
-        document.getElementById('game-container').appendChild(scoreElement);
+    if (scoreElement) {
+        scoreElement.parentNode.removeChild(scoreElement);
     }
-    scoreElement.innerText = lang.score + '0';
 
     // Элемент для отображения сообщений точности
     let accuracyMessage = document.getElementById('accuracy-message');
@@ -170,16 +192,118 @@ function initUI() {
         accuracyMessage.style.display = 'none';
         document.getElementById('game-container').appendChild(accuracyMessage);
     }
+
+    // Добавляем нижний бар с кнопками
+    let bottomBar = document.getElementById('bottom-bar');
+    if (!bottomBar) {
+        bottomBar = document.createElement('div');
+        bottomBar.id = 'bottom-bar';
+        document.getElementById('game-container').appendChild(bottomBar);
+
+        // Устанавливаем позиционирование нижнего бара
+        bottomBar.style.position = 'absolute';
+        bottomBar.style.bottom = '0';
+        bottomBar.style.left = '0';
+        bottomBar.style.width = '100%';
+        bottomBar.style.height = `${GRID_OBJECT_HEIGHT + GRID_SPACING}px`; // Используем глобальную переменную
+        bottomBar.style.display = 'flex';
+        bottomBar.style.justifyContent = 'space-around';
+        bottomBar.style.alignItems = 'center';
+        bottomBar.style.padding = `${GRID_SPACING / 2}px 0`; // Вертикальные отступы
+
+        // Кнопка назад
+        let backButton = document.createElement('div');
+        backButton.id = 'back-button';
+        backButton.classList.add('bottom-button');
+        backButton.innerText = lang.backButtonText;
+        backButton.style.width = `${GRID_OBJECT_WIDTH}px`;
+        backButton.style.height = `${GRID_OBJECT_HEIGHT}px`;
+        backButton.style.margin = `${GRID_SPACING / 2}px`;
+        backButton.style.cursor = 'pointer'; // Добавляем курсор для кнопки
+        bottomBar.appendChild(backButton);
+
+        // Таймер
+        let timer = document.createElement('div');
+        timer.id = 'timer';
+        timer.classList.add('bottom-button');
+        timer.style.width = `${GRID_OBJECT_WIDTH}px`;
+        timer.style.height = `${GRID_OBJECT_HEIGHT}px`;
+        timer.style.margin = `${GRID_SPACING / 2}px`;
+        timer.style.display = 'flex';
+        timer.style.justifyContent = 'center';
+        timer.style.alignItems = 'center';
+        let timerValue = document.createElement('span');
+        timerValue.id = 'timer-value';
+        timerValue.innerText = '2:00';
+        timer.appendChild(timerValue);
+        bottomBar.appendChild(timer);
+
+        // Счет
+        let scoreDisplay = document.createElement('div');
+        scoreDisplay.id = 'score-display';
+        scoreDisplay.classList.add('bottom-button');
+        scoreDisplay.style.width = `${GRID_OBJECT_WIDTH}px`;
+        scoreDisplay.style.height = `${GRID_OBJECT_HEIGHT}px`;
+        scoreDisplay.style.margin = `${GRID_SPACING / 2}px`;
+        scoreDisplay.style.display = 'flex';
+        scoreDisplay.style.justifyContent = 'center';
+        scoreDisplay.style.alignItems = 'center';
+        scoreDisplay.innerText = `${lang.score} \n 0/0`;
+        bottomBar.appendChild(scoreDisplay);
+    }
+
+    // Добавляем фоновое изображение в верхней части
+    let topBackground = document.getElementById('top-background');
+    if (!topBackground) {
+        topBackground = document.createElement('img');
+        topBackground.id = 'top-background';
+        topBackground.src = topBackgroundURL;
+        topBackground.style.position = 'absolute';
+        topBackground.style.top = '0';
+        topBackground.style.left = '0';
+        topBackground.style.width = '100%';
+        topBackground.style.height = 'auto';
+        topBackground.style.zIndex = '0'; // За канвасом
+        document.getElementById('game-container').appendChild(topBackground);
+    }
+}
+
+function startTimer() {
+    timeLeft = 120;
+    updateTimerDisplay();
+    gameTimer = setInterval(function() {
+        timeLeft--;
+        if (timeLeft <= 0) {
+            clearInterval(gameTimer);
+            isGameOver = true;
+            endGame(false);
+            Matter.Render.stop(render);
+            Matter.Engine.clear(engine);
+        } else {
+            updateTimerDisplay();
+        }
+    }, 1000);
 }
 
 // Начать игру
 function startGame() {
     document.getElementById('start-popup').style.display = 'none';
     document.getElementById('game-canvas').style.display = 'block';
+
+    // Запуск таймера
+    startTimer();
+
     initGame();
 }
 
-// Инициализация игры
+// Обновление отображения таймера
+function updateTimerDisplay() {
+    let minutes = Math.floor(timeLeft / 60);
+    let seconds = timeLeft % 60;
+    let timeString = minutes + ':' + (seconds < 10 ? '0' + seconds : seconds);
+    document.getElementById('timer-value').innerText = timeString;
+}
+
 function initGame() {
     isGameOver = false;
     blockCount = 0;
@@ -204,9 +328,38 @@ function initGame() {
             width: canvas.width,
             height: canvas.height,
             wireframes: false,
-            background: '#87ceeb',
-            hasBounds: true
+            hasBounds: true,
+            background: 'transparent' // Чтобы фон не перекрывал наш градиент и фоновое изображение
         }
+    });
+
+    // Добавляем отрисовку радиального градиента и фонового изображения перед каждым кадром
+    Matter.Events.on(render, 'beforeRender', function() {
+        var context = render.context;
+        var canvasWidth = canvas.width;
+        var canvasHeight = canvas.height;
+
+        // Очищаем канвас
+        context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        // Рисуем фоновое изображение в верхней части
+        if (topBackgroundImage.complete) {
+            let imgWidth = canvasWidth;
+            let imgHeight = topBackgroundImage.height * (canvasWidth / topBackgroundImage.width);
+            context.drawImage(topBackgroundImage, 0, 0, imgWidth, imgHeight);
+        }
+
+        // Создаем радиальный градиент
+        var gradient = context.createRadialGradient(
+            canvasWidth / 2, canvasHeight / 2, 0,
+            canvasWidth / 2, canvasHeight / 2, canvasWidth / 1.2
+        );
+        gradient.addColorStop(0, gradientColorStart);
+        gradient.addColorStop(1, gradientColorEnd);
+
+        // Заполняем фон градиентом
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, canvasWidth, canvasHeight);
     });
 
     // Создаем землю
@@ -215,7 +368,7 @@ function initGame() {
     });
     Matter.World.add(world, ground);
 
-    // Добавляем первый блок-основание с текстурой
+    // Добавляем базовый блок с текстурой
     let baseBlock = Matter.Bodies.rectangle(
         canvas.width / 2,
         baseBlockY,
@@ -226,9 +379,9 @@ function initGame() {
             render: {
                 sprite: {
                     texture: plateTextureURL,
-                    xScale: baseBlockTextureScale,
-                    yScale: baseBlockTextureScale,
-                    yOffset: baseBlockTextureOffsetY
+                    xScale: baseBlockWidth / plateTextureImage.width,
+                    yScale: (baseBlockHeight / plateTextureImage.height) * baseBlockTextureScaleY,
+                    yOffset: baseBlockTextureOffsetY // Можно регулировать при необходимости
                 }
             }
         }
@@ -244,29 +397,10 @@ function initGame() {
     createNewBlock();
 
     // Запускаем физический движок
-    Matter.Engine.run(engine);
+    Matter.Runner.run(engine);
 
     // Запускаем рендерер
     Matter.Render.run(render);
-
-    // Добавляем отрисовку радиального градиента перед каждым кадром
-    Matter.Events.on(render, 'beforeRender', function() {
-        var context = render.context;
-        var canvasWidth = canvas.width;
-        var canvasHeight = canvas.height;
-
-        // Создаем радиальный градиент
-        var gradient = context.createRadialGradient(
-            canvasWidth / 2, canvasHeight / 2, 0,
-            canvasWidth / 2, canvasHeight / 2, canvasWidth / 1.2
-        );
-        gradient.addColorStop(0, 'white');
-        gradient.addColorStop(1, '#0058C9');
-
-        // Заполняем фон градиентом
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, canvasWidth, canvasHeight);
-    });
 
     // Обновляем текущий блок перед обновлением физики
     Matter.Events.on(engine, 'beforeUpdate', updateCurrentBlock);
@@ -322,10 +456,10 @@ function renderCurrentBlock() {
         const context = render.context;
         context.save();
 
-        let textureWidth = blockTextureImage.width * blockTextureScale;
-        let textureHeight = blockTextureImage.height * blockTextureScale;
-        let textureX = currentBlock.x + (currentBlock.width - textureWidth) / 2;
-        let textureY = currentBlock.y + (currentBlock.height - textureHeight) / 2;
+        let textureWidth = currentBlock.width;
+        let textureHeight = blockTextureImage.height * blockTextureScaleY;
+        let textureX = currentBlock.x;
+        let textureY = currentBlock.y + currentBlock.height - textureHeight + blockTextureOffsetY * currentBlock.height;
 
         if (blockTextureImage.complete) {
             context.drawImage(blockTextureImage, textureX, textureY, textureWidth, textureHeight);
@@ -343,6 +477,9 @@ function dropBlock() {
 
     currentBlock.isFalling = true;
 
+    let textureScaleX = currentBlock.width / blockTextureImage.width;
+    let textureScaleY = blockTextureScaleY;
+
     let blockBody = Matter.Bodies.rectangle(
         currentBlock.x + currentBlock.width / 2,
         currentBlock.y + currentBlock.height / 2,
@@ -352,8 +489,9 @@ function dropBlock() {
             render: {
                 sprite: {
                     texture: blockTextureURL,
-                    xScale: blockTextureScale,
-                    yScale: blockTextureScale
+                    xScale: textureScaleX,
+                    yScale: textureScaleY,
+                    yOffset: blockTextureOffsetY
                 }
             }
         }
@@ -402,7 +540,7 @@ function handleCollisionStart(event) {
             lastBlock.touchedGround = true;
         }
 
-        // Новое условие: если любой блок касается земли
+        // Если любой блок касается земли
         if ((blocks.includes(pair.bodyA) && pair.bodyB === ground) ||
             (blocks.includes(pair.bodyB) && pair.bodyA === ground)) {
             let body = blocks.includes(pair.bodyA) ? pair.bodyA : pair.bodyB;
@@ -436,6 +574,7 @@ function calculateAccuracy() {
     let accuracy = (overlap / blockWidth) * 100;
 
     let message = '';
+    let color = '#ffffff'; // Белый цвет
     if (accuracy > 80) {
         message = lang.perfect;
     } else if (accuracy > 60) {
@@ -444,7 +583,7 @@ function calculateAccuracy() {
         message = lang.okay;
     }
 
-    showAccuracyMessage(message);
+    showAccuracyMessage(message, color);
 
     // Увеличиваем счетчик успешно размещенных блоков
     successfulBlocks++;
@@ -463,9 +602,10 @@ function calculateOverlap(blockA, blockB) {
 }
 
 // Функция для отображения сообщения точности
-function showAccuracyMessage(message) {
+function showAccuracyMessage(message, color) {
     let accuracyMessage = document.getElementById('accuracy-message');
     accuracyMessage.innerText = message;
+    accuracyMessage.style.color = color;
     accuracyMessage.style.display = 'block';
 
     // Скрываем сообщение через 1 секунду
@@ -477,8 +617,8 @@ function showAccuracyMessage(message) {
 // Функция для обновления счетчика
 function updateScore() {
     const lang = translations[language];
-    let scoreElement = document.getElementById('score');
-    scoreElement.innerText = lang.score + successfulBlocks;
+    let scoreDisplay = document.getElementById('score-display');
+    scoreDisplay.innerText = `${lang.score}${successfulBlocks}`;
 }
 
 // Проверка завершения игры
@@ -522,14 +662,22 @@ function endGame(victory) {
     document.getElementById('end-popup').style.display = 'flex';
     document.getElementById('game-canvas').style.display = 'none';
 
-    // Удаляем обработчики событий, чтобы предотвратить ускорение при перезапуске
+    // Останавливаем обработчики событий
     Matter.Events.off(engine);
+
+    // Останавливаем таймер
+    clearInterval(gameTimer);
 }
 
 // Перезапуск игры
 function restartGame() {
+    clearInterval(gameTimer); // Останавливаем предыдущий таймер
     document.getElementById('end-popup').style.display = 'none';
     document.getElementById('game-canvas').style.display = 'block';
+
+    // Запуск таймера
+    startTimer();
+
     initGame();
 }
 
@@ -541,17 +689,23 @@ function resizeCanvas() {
     const windowAspectRatio = window.innerWidth / window.innerHeight;
 
     const container = document.getElementById('game-container');
+    const bottomBar = document.getElementById('bottom-bar');
+    let bottomBarHeight = bottomBar ? bottomBar.offsetHeight : GRID_OBJECT_HEIGHT + GRID_SPACING;
 
     if (windowAspectRatio > desiredAspectRatio) {
-        canvas.height = window.innerHeight;
+        canvas.height = window.innerHeight - bottomBarHeight;
         canvas.width = canvas.height * desiredAspectRatio;
     } else {
         canvas.width = window.innerWidth;
         canvas.height = canvas.width / desiredAspectRatio;
+        canvas.height = canvas.height - bottomBarHeight;
     }
 
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+
     container.style.width = `${canvas.width}px`;
-    container.style.height = `${canvas.height}px`;
+    container.style.height = `${canvas.height + bottomBarHeight}px`;
 
     // Пересчитываем размеры и позиции
     calculateSizes();
@@ -578,28 +732,33 @@ function resizeCanvas() {
 function updateBlocksSize() {
     for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i];
+        let previousWidth = block.bounds.max.x - block.bounds.min.x;
+        let previousHeight = block.bounds.max.y - block.bounds.min.y;
+
         if (block.blockIndex === -1) {
-            // Обновляем базовый блок
+            // Базовый блок
             Matter.Body.setPosition(block, {
                 x: canvas.width / 2,
                 y: baseBlockY
             });
-            Matter.Body.scale(block, 
-                baseBlockWidth / (block.bounds.max.x - block.bounds.min.x),
-                baseBlockHeight / (block.bounds.max.y - block.bounds.min.y)
-            );
-            // Обновляем масштаб и позицию текстуры базового блока
-            block.render.sprite.xScale = baseBlockTextureScale;
-            block.render.sprite.yScale = baseBlockTextureScale;
-            block.render.sprite.yOffset = baseBlockTextureOffsetY * baseBlockHeight;
-        } else {
-            // Обновляем остальные блоки
-            let scaleX = blockWidth / (block.bounds.max.x - block.bounds.min.x);
-            let scaleY = blockHeight / (block.bounds.max.y - block.bounds.min.y);
+            let scaleX = baseBlockWidth / previousWidth;
+            let scaleY = baseBlockHeight / previousHeight;
             Matter.Body.scale(block, scaleX, scaleY);
-            // Обновляем масштаб текстуры падающих блоков
-            block.render.sprite.xScale = blockTextureScale;
-            block.render.sprite.yScale = blockTextureScale;
+
+            // Обновляем масштаб текстуры базового блока
+            block.render.sprite.xScale = baseBlockWidth / plateTextureImage.width;
+            block.render.sprite.yScale = (baseBlockHeight / plateTextureImage.height) * baseBlockTextureScaleY;
+            block.render.sprite.yOffset = 0.0; // При необходимости можно регулировать
+        } else {
+            // Остальные блоки
+            let scaleX = blockWidth / previousWidth;
+            let scaleY = blockHeight / previousHeight;
+            Matter.Body.scale(block, scaleX, scaleY);
+
+            // Обновляем масштаб и оффсет текстур падающих блоков
+            block.render.sprite.xScale = blockWidth / blockTextureImage.width;
+            block.render.sprite.yScale = blockTextureScaleY;
+            block.render.sprite.yOffset = blockTextureOffsetY;
         }
     }
 }
