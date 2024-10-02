@@ -1,0 +1,153 @@
+#game-container {
+    position: relative;
+    margin: auto;
+    overflow: hidden;
+    background-color: #0058C9; /* Фон за игровым канвасом */
+    touch-action: manipulation; /* Отключаем двойной тап */
+    overscroll-behavior: none;  /* Отключаем перетаскивание страницы */
+    z-index: 1;
+    background: transparent; /* radial-gradient(circle at center, white, #0058C9);  */
+    box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.5); /* Добавляем белое размытие вокруг контейнера */
+}
+
+#game-container > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#game-canvas {
+    display: none;
+    background: radial-gradient(circle at center, white, #0058C9); /* Статичный радиальный градиент */
+    z-index: 1;
+}
+
+.popup {
+    display: none;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 88, 201, 0.5); /* Полупрозрачный синий фон */
+    backdrop-filter: blur(10px); /* Размытие фона */
+    color: #fff;
+    z-index: 3; /* Поверх остальных элементов */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    border: 2px solid #fff; /* Белая контурная рамка */
+    box-sizing: border-box;
+}
+
+.popup h1, .popup p, .popup button {
+    margin: 10px;
+    background-color: rgba(0, 88, 201, 0.5); /* Полупрозрачный блюр цвета 0058C9 */
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.popup button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.3); /* Полупрозрачный белый фон */
+}
+
+.popup button:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+#start-popup {
+    display: flex;
+}
+
+#end-popup {
+    display: none;
+}
+
+#score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #fff;
+    font-size: 24px;
+    text-shadow: 1px 1px 2px #000;
+    z-index: 2;
+}
+
+#accuracy-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #0058C9;
+    font-size: 48px;
+    text-shadow: 2px 2px 4px #000;
+    display: none;
+    z-index: 2;
+}
+
+#bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 20%;
+    display: grid;
+    grid-template-columns: 0.8fr 1fr 0.8fr;
+    z-index: 2;
+    margin-top: 80vh;
+}
+
+.bottom-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: url('assets/back.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    color: #000000;
+    font-size: 2vh;
+    text-align: center;
+}
+
+#back-button {
+    cursor: pointer;
+}
+
+.bottom-button img {
+    max-width: 80%;
+    max-height: 80%;
+}
+
+/* Подключение шрифта */
+@font-face {
+    font-family: 'PlutoOreo-Black';
+    src: url('https://cdn.jsdelivr.net/gh/timememe/o_files@main/PlutoOreo-Black.otf') format('opentype');
+}
+
+button, h1, p, #score, #accuracy-message {
+    font-family: 'PlutoOreo-Black', sans-serif;
+}
+
+@media (max-width: 768px) {
+    #game-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    #bottom-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 20%;
+        display: grid;
+        grid-template-columns: 0.8fr 1fr 0.8fr;
+        z-index: 2;
+        margin-top: 65vh;
+    }
+}
