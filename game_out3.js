@@ -105,7 +105,7 @@
         const data = {
             points: points,
             won: true,
-            game: 'oreotower'
+            game: 'tower'
         };
         const token = getCookie('jwt_token');
         if (token) {
