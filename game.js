@@ -1,5 +1,5 @@
 // Глобальные настройки игры
-let language = 'ru'; // Язык игры
+let language = document.documentElement.getAttribute('lang') || 'ru';
 
 // Глобальные цвета градиента
 let gradientColorStart = 'white';

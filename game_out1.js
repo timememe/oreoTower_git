@@ -33,7 +33,7 @@
     let blockTextureScaleY = 0.2;
     let blockTextureOffsetY = 0.0;
     
-    const maxBlocks = 10;
+    const maxBlocks = 7;
     const baseURL = 'https://cdn.jsdelivr.net/gh/timememe/oreotower_git@main/assets/';
     
     // Игровые переменные
@@ -50,12 +50,93 @@
     let successfulBlocks = 0;
     let gameTimer;
     let timeLeft = 120;
+
+    function sendGameResult(game, result, language) {
+        console.log('Sending result:', game, result, language);  // Обновлено для отладки
+
+        const data = {
+            game: game,
+            result: result,
+            language: language // Добавлен параметр языка
+        };
+
+        fetch('https://wo-server-v1.onrender.com/game-result', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => console.log('Game result sent:', data))
+        .catch(error => console.error('Error sending game result:', error));
+    }
+
+    function getCookie(name) {
+        let namePattern = name + "=";
+        let cookiesArray = document.cookie.split(';');
+        for(let i = 0; i < cookiesArray.length; i++) {
+            let cookie = cookiesArray[i].trim();
+            if (cookie.indexOf(namePattern) == 0) {
+                return cookie.substring(namePattern.length, cookie.length);
+            }
+        }
+        return null;
+    }
+
+    function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
+
+    function awardPoints(points) {
+        const data = {
+            points: points,
+            won: true,
+            game: 'oreotower'
+        };
+        const token = getCookie('jwt_token');
+        if (token) {
+            fetch('https://api.oreo-promo.com/game', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-jwt-auth': token,
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('Points awarded successfully:', result);
+                window.location="/profile";
+            })
+            .catch(error => {
+                console.error('Error awarding points:', error);
+                window.location="/profile";
+            });
+        } else {
+            setCookie('guest_game', JSON.stringify(data), 90);
+            window.location="#ModalLogin";
+        }
+    }
     
     // Переводы
     const translations = {
         en: {
-            gameTitle: "Tower Builder",
-            tutorialText: "Stack the blocks carefully to build the tallest tower without it falling!",
+            gameTitle: "Oreo Builder",
+            tutorialText: "Stack the tower of 7 Oreos and don't let it fall!",
             startGame: "Start Game",
             victory: "You Win!",
             defeat: "Game Over",
@@ -67,8 +148,8 @@
             backButtonText: "Back"
         },
         ru: {
-            gameTitle: "Строитель Башни",
-            tutorialText: "Аккуратно складывайте блоки, чтобы построить самую высокую башню, не уронив ее!",
+            gameTitle: "Oreo Cтроитель",
+            tutorialText: "Соберите башню из 7 Oreo и не уроните ее!",
             startGame: "Начать игру",
             victory: "Вы выиграли!",
             defeat: "Игра окончена",
@@ -79,8 +160,46 @@
             okay: "НУ ОК",
             backButtonText: "НАЗАД"
         },
-        // Добавьте остальные переводы...
-    };
+        kz: {
+            gameTitle: "Oreo Құрылысшы",
+            tutorialText: "Oreo-ның 7 блогынан мұнара құрастырыңыз және оны құлатпаңыз!",
+            startGame: "Ойынды бастау",
+            victory: "Сіз жеңдіңіз!",
+            defeat: "Ойын аяқталды",
+            restartGame: "Қайта бастау",
+            score: "Блоктар: ",
+            perfect: "КЕРЕМЕТ!",
+            great: "ТАҢҒАЖАЙЫП!",
+            okay: "ЖАРАЙДЫ",
+            backButtonText: "АРТҚА"
+        },
+        ka: {
+            gameTitle: "Oreo მშენებელი",
+            tutorialText: "შექმენით 7 Oreo-სგან კოშკი და არ ჩამოაგდოთ ის!",
+            startGame: "თამაშის დაწყება",
+            victory: "თქვენ გაიმარჯვეთ!",
+            defeat: "თამაში დასრულდა",
+            restartGame: "გადატვირთვა",
+            score: "ბლოკები: ",
+            perfect: "იდეალური!",
+            great: "შესანიშნავი!",
+            okay: "კარგი",
+            backButtonText: "უკან"
+        },
+        uz: {
+            gameTitle: "Oreo Quruvchi",
+            tutorialText: "Oreo-dan 7 blokli minorani yig'ing va uni yiqitmaslikka harakat qiling!",
+            startGame: "O'yinni boshlash",
+            victory: "Siz g'alaba qozondingiz!",
+            defeat: "O'yin tugadi",
+            restartGame: "Qayta boshlash",
+            score: "Bloklar: ",
+            perfect: "MUKAMMAL!",
+            great: "ZO'R!",
+            okay: "YAXSHI",
+            backButtonText: "ORQAGA"
+        }
+    };    
     
     // Изображения
     let images = {};
@@ -613,6 +732,7 @@
         for (let body of blocks) {
             if (body.position.y > canvas.height + 100) {
                 endGame(false);
+                sendGameResult('game1', 'loss', language);
                 return;
             }
         }
@@ -620,12 +740,15 @@
         for (let body of blocks) {
             if (body.touchedGround && body.blockIndex >= 0 && !body.hasLanded) {
                 endGame(false);
+                sendGameResult('game1', 'loss', language);
                 return;
             }
         }
 
         if (blockCount >= maxBlocks && !currentBlock) {
             endGame(true);
+            awardPoints(1);
+            sendGameResult('game1', 'win', language);
         }
     }
 
